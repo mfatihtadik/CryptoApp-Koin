@@ -4,7 +4,9 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mftadik.cryptokoinapp.model.Crypto
+import com.mftadik.cryptokoinapp.repository.CryptoDownload
 import com.mftadik.cryptokoinapp.service.CryptoAPI
+import com.mftadik.cryptokoinapp.util.Resource
 import com.mftadik.cryptokoinapp.view.RecyclerViewAdapter
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
@@ -15,22 +17,26 @@ import kotlinx.coroutines.withContext
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
-class CryptoViewModel : ViewModel() {
+class CryptoViewModel(
+    private val cryptoDownloadRepository : CryptoDownload
+) : ViewModel() {
 
-    val cryptoList = MutableLiveData<List<Crypto>>()
-    val cryptoError = MutableLiveData<Boolean>()
-    val cryptoLoading = MutableLiveData<Boolean>()
+    val cryptoList = MutableLiveData<Resource<List<Crypto>>>()
+    val cryptoError = MutableLiveData<Resource<Boolean>>()
+    val cryptoLoading = MutableLiveData<Resource<Boolean>>()
 
     private var job : Job? = null
 
     val exceptionHandler = CoroutineExceptionHandler { coroutineContext, throwable ->
         println("Error: ${throwable.localizedMessage}")
-        cryptoError.value = true
+        cryptoError.value = Resource.error(throwable.localizedMessage ?: "error",data = true)
     }
 
 
     fun getDataFromAPI() {
-        cryptoLoading.value = true
+        cryptoLoading.value = Resource.loading(data = true)
+
+        /*
 
         val BASE_URL = "https://raw.githubusercontent.com/"
 
@@ -40,16 +46,15 @@ class CryptoViewModel : ViewModel() {
             .build()
             .create(CryptoAPI::class.java)
 
-        job = CoroutineScope(Dispatchers.IO + exceptionHandler).launch {
-            val response = retrofit.getData()
+         */
 
+        job = CoroutineScope(Dispatchers.IO + exceptionHandler).launch {
+            val resource = cryptoDownloadRepository.downloadCryptos()
             withContext(Dispatchers.Main) {
-                if (response.isSuccessful) {
-                    cryptoError.value = false
-                    cryptoLoading.value = false
-                    response.body()?.let {
-                        cryptoList.value = it
-                    }
+                resource.data?.let {
+                    cryptoList.value = resource
+                    cryptoError.value = Resource.error("", data = false)
+                    cryptoLoading.value = Resource.loading(data = false)
                 }
             }
         }
