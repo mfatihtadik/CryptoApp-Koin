@@ -19,6 +19,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.koin.android.ext.android.get
+import org.koin.android.ext.android.inject
+import org.koin.androidx.viewmodel.ext.android.viewModel
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
@@ -27,7 +30,17 @@ class ListFragment : Fragment(), RecyclerViewAdapter.Listener {
     private var _binding: FragmentListBinding? = null
     private val binding get() = _binding!!
     private var cryptoAdapter = RecyclerViewAdapter(arrayListOf(),this)
-    private lateinit var viewModel : CryptoViewModel
+
+    private val viewModel by viewModel<CryptoViewModel>()
+
+
+    //Hilt -> Compile Time <--vs--> Koin -> Runtime
+
+    //Field injection example
+    /*
+    private val api = get<CryptoAPI>()
+    private val apilazy by inject<CryptoAPI>()
+     */
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -48,7 +61,7 @@ class ListFragment : Fragment(), RecyclerViewAdapter.Listener {
 
         val layoutManager = LinearLayoutManager(requireContext())
         binding.recyclerView.layoutManager = layoutManager
-        viewModel = ViewModelProvider(this).get(CryptoViewModel::class.java)
+        //viewModel = ViewModelProvider(this).get(CryptoViewModel::class.java)
         viewModel.getDataFromAPI()
         observeLiveData()
     }
